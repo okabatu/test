@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>QAコネクト サンプルスクリプト</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet">
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <script src="oshiete_api.js"></script>
+
+    <script>
+      $(function () {
+        'user strict;'
+
+        /**
+         * 質問一覧を取得する。
+         *
+         * @param {object} opt APIに渡す引数を格納したオブジェクト
+         * @return {object} 質問一覧APIのajaxオブジェクト
+         */
+        function getQuestionList(opt) {
+          var path = 'questions';
+          var data = {
+            status : opt.status,
+            category_id : opt.category_id,
+            page : opt.page,
+          };
+
+          var callback = showQuestionList;
+
+          OshieteApi.callApi('GET', path, data, callback);
+        };
+
+        /**
+         * 質問一覧を画面に表示する。
+         *
+         * @param {object} response 質問一覧情報を格納したオブジェクト
+         */
+        function showQuestionList(response) {
+          $('#table-question-list tbody').find('tr').remove();
+          $('#question-list-count').empty();
+
+          $.each(response.items, function(i, questionInfo) {
+            var button = '<button type="button" class="btn btn-default center-block" id="btn-qa-detail" value="' +
+                          questionInfo.question_id +
+                          '">QA詳細</button>';
+
+            var tdList = '<td>' + questionInfo.nickname + '</td>' +
+                         '<td>' + questionInfo.title + '</td>' +
+                         '<td>' + questionInfo.category_name + '</td>' +
+                         '<td>' + button + '</td>';
+
+            var tr = '<tr>' + tdList + '</tr>';
+
+            $('#table-question-list tbody').append(tr);
+          });
+
+          var count = response.items.length;
+
+          $('#question-list-count').append(count + '/' + response.total_count + '件');
+          $('#panel-question-list').show();
+        };
+
+        $(document).on('click','#btn-qa-detail',function(){
+          var questionId = this.value;
+
+          $('#form-qa-detail [name=question-id]').val(questionId);
+          $('#form-qa-detail').submit();
+        });
+
+        $('#btn-get-question-list').click(function(){
+          var opt = {
+            status : $('#form-get-question-list [name=status]:checked').val(),
+            category_id : $('#form-get-question-list [name=category-id]').val(),
+            page : $('#form-get-question-list [name=page]').val(),
+          };
+
+          getQuestionList(opt);
+        });
+
+        OshieteApi.getAccessToken();
+        $('#nav-host').text('Host : ' + OshieteApi.config.host);
+        $('#nav-client-id').text('ClientID : ' + OshieteApi.config.clientId);
+      });
+    </script>
+
+  </head>
+
+  <body>
+    <!-- Static navbar -->
+    <nav class="navbar navbar-default">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="index.html">QAコネクト</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="create_user.html">会員登録</a></li>
+            <li class="active"><a href="questions.html">質問一覧</a></li>
+            <li><a href="create_question.html">質問投稿</a></li>
+            <li><a href="qa.html">QA詳細</a></li>
+          </ul>
+          <ul class="nav navbar-nav navbar-right">
+            <li><p class="navbar-text" id="nav-host"></p></li>
+            <li><p class="navbar-text" id="nav-client-id"></p></li>
+            <li>
+              <a href="../oshietegoo_API.html" target="_blank">
+                <span class="glyphicon glyphicon-info-sign"></span>
+              </a>
+            </li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div><!--/.container-fluid -->
+    </nav>
+
+    <div class="container">
+      <div class="row" style="margin-top: 20px;">
+        <div class="col-xs-offset-3 col-xs-6">
+          <div class="panel panel-default" id="panel-get-question-list-form">
+            <div class="panel-heading"><strong>質問一覧取得</strong></div>
+            <div class="panel-body">
+              <form id="form-get-question-list">
+                <label>ステータス</label>
+                <div class="form-group">
+                  <div class="radio-inline">
+                    <input type="radio" value="1" name="status" id="status-open">
+                    <label>受付中</label>
+                  </div>
+                  <div class="radio-inline">
+                    <input type="radio" value="2" name="status" id="status-close">
+                    <label>締め切り済み</label>
+                  </div>
+                  <div class="radio-inline">
+                    <input type="radio" value="3" name="status" id="status-solve">
+                    <label>解決</label>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>カテゴリID</label>
+                  <a class="pull-right" href="../htmls/_ids.html#page:カテゴリid" target="_blank">カテゴリID一覧</a>
+                  <input type="text" class="form-control" name="category-id">
+                </div>
+                <div class="form-group">
+                  <label>ページ番号</label>
+                  <input type="text" class="form-control" name="page">
+                </div>
+              </form>
+              <div class="row">
+                <button type="button" class="btn btn-default center-block" id="btn-get-question-list">検索</button>
+              </div>
+            </div>
+          </div>
+          <form id="form-qa-detail" action="qa.html">
+            <input type="hidden" name="question-id" value="">
+          </form>
+        </div>
+      </div><!-- /.row -->
+      <div class="row" style="margin-top: 20px;">
+        <div class="col-xs-12">
+          <label class="pull-right" id="question-list-count"></label>
+        </div>
+        <div class="col-xs-12">
+          <div class="panel panel-default" id="panel-question-list" style="display: none;">
+            <div class="panel-heading"><strong>質問一覧</strong></div>
+            <table class="table table-bordered table-condensed" id="table-question-list">
+              <thead>
+                <tr>
+                  <th>ニックネーム</th>
+                  <th>タイトル</th>
+                  <th>カテゴリ</th>
+                  <th>QA詳細</th>
+                </tr>
+              </thead>
+              <tbody>
+              </tbody>
+            </table>
+          </div><!-- /.panel panel-default -->
+          <form id="form-qa-detail" action="qa.html">
+            <input type="hidden" name="question-id" value="">
+          </form>
+        </div><!-- /.col-xs-offset-3 col-xs-6 -->
+      </div><!-- /.row -->
+    </div> <!-- /container -->
+
+  </body>
+</html>
