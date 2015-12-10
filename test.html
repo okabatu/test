@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <script type="text/javascript" src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
+    <script type="text/javascript" src="http://lod4all.net/api/lfasparql-2.0.0.js"></script>
+    <script type="text/javascript">
+        var lfasparql = new LFASparql();
+
+        $(document).ready( function() {
+            test();
+        });
+
+        function test() {
+
+            var sparql_query = "select distinct * where { <http://ja.dbpedia.org/resource/東京都> ?p ?o . }";
+
+            lfasparql.executeSparql({
+                appID: "xawsaykmcb",
+                sparql: sparql_query,
+                success: getResult,
+                error: getError
+            });
+
+            function getResult(data) {
+                for(var i = 0; i < data.length; i++) {
+                    var items = data[i];
+                    var p_type = items["p"]["type"];
+                    var p_value = items["p"]["value"];
+
+                    var o_type = items["o"]["type"];
+                    var o_value = items["o"]["value"];
+
+                    var o_datatype = "";
+                    if(o_type == "typed-literal")
+                    {
+                        o_datatype = items["o"]["datatype"];
+                    }
+
+                    var o_lang = "";
+                    if(o_type == "literal")
+                    {
+                        o_lang = items["o"]["xml:lang"];
+                    }
+
+                    $("#result")
+                    .append(
+                        "<li>" +
+                        p_type + ": " + p_value + ", " +
+                        o_type + ": " + o_value + ", " + o_datatype+", " + o_lang+", "+
+                        "</li>"
+                    );
+                }
+            }
+
+            function getError(xhr, status, error) {
+                console.log("Error occured: " + status + "\nError: " + error + "\nError detail: " + xhr.responseText);
+            }
+        }
+    </script>
+    <title>API Test</title>
+</head>
+<body>
+
+    <h3>API Test</h3>
+    <ol id="result">
+    </ol>
+</body>
+</html>
