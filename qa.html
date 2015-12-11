@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>QAコネクト サンプルスクリプト</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet">
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <script src="oshiete_api.js"></script>
+
+    <script>
+      $(function () {
+        'user strict;'
+
+        /**
+         * QA詳細情報を取得する
+         *
+         * @param {object} opt APIに渡す引数を格納したオブジェクト
+         * @return {object} QA詳細APIのajaxオブジェクト
+         */
+        function getQa(opt) {
+          var path = 'questions/' + opt.questionId + '/details';
+          var data = null;
+          var callback = showQaDetail;
+
+          OshieteApi.callApi('GET', path, data, callback);
+        };
+
+        /**
+         * QA詳細情報を画面に表示する。
+         *
+         * @param {object} response QA詳細情報を格納したオブジェクト
+         */
+        function showQaDetail(response) {
+          $('#table-qa-detail-question tbody').find('tr').remove();
+          $('#table-qa-detail-additions tbody').find('tr').remove();
+          $('#table-qa-detail-answers tbody').find('tr').remove();
+          $('#form-get-qa [name=question-id]').val(response.question_id);
+
+          var questionInfo = '<tr><td style="background-color: #eeeeee;">ニックネーム</td><td>' + response.nickname + '</td></tr>' +
+                             '<tr><td style="background-color: #eeeeee;">タイトル</td><td>' + response.title + '</td></tr>' +
+                             '<tr><td style="background-color: #eeeeee;">本文</td><td>' + response.body + '</td></tr>' +
+                             '<tr><td style="background-color: #eeeeee;">カテゴリ</td><td>' + response.category_name + '</td></tr>' +
+                             '<tr><td style="background-color: #eeeeee;">投稿日時</td><td>' + response.public_date + '</td></tr>';
+
+          if (response.stamp) {
+            var stampUrl = response.stamp.stamp_image_urls[0].url;
+            var stampImage = '<img src="http:' + stampUrl + '" width="110" height="95">';
+
+            var questionInfo = questionInfo + '<tr><td style="background-color: #eeeeee;">スタンプ</td><td>' + stampImage + '</td></tr>';
+          }
+
+          $('#table-qa-detail-question tbody').append(questionInfo);
+
+          $.each(response.additions, function(i, additionData) {
+            var additionInfo = '<tr>' +
+                               '<td>' + additionData.body + '</td>' +
+                               '<td>' + additionData.public_date + '</td>' +
+                               '</tr>';
+
+            $('#table-qa-detail-additions tbody').append(additionInfo);
+          });
+
+          $.each(response.answers, function(i, answerData) {
+            var answerInfo = '<td>' + answerData.nickname + '</td>' +
+                             '<td>' + answerData.body + '</td>';
+
+            var thankInfo = '<td></td>';
+            if (answerData.thank) {
+              thankInfo = '<td>' + answerData.thank.body + '</td>';
+            };
+
+            answerInfo = '<tr>' + answerInfo + thankInfo + '</tr>';
+
+            $('#table-qa-detail-answers tbody').append(answerInfo);
+          });
+
+          $('#panel-qa-detail').show();
+        };
+
+        $('#btn-get-qa').click(function(){
+          if (!$('#form-get-qa [name=question-id]').val()) {
+            window.alert('質問IDを入力して下さい。');
+            return false;
+          };
+
+          var opt = {
+            questionId : $('#form-get-qa [name=question-id]').val(),
+          };
+
+          getQa(opt);
+        });
+
+        $.when(OshieteApi.getAccessToken()).then(function () {
+          var url = location.href;
+          var parameters = url.split('?');
+  
+          if (!parameters[1]) {
+            return;
+          };
+  
+          var params = parameters[1].split('&');
+  
+          var paramArray = [];
+          for ( i = 0; i < params.length; i++ ) {
+            vol = params[i].split("=");
+            paramArray[vol[0]] = vol[1];
+          };
+  
+          var opt = {
+            questionId : paramArray['question-id'],
+          };
+
+          getQa(opt);
+        });
+
+        $('#nav-host').text('Host : ' + OshieteApi.config.host);
+        $('#nav-client-id').text('ClientID : ' + OshieteApi.config.clientId);
+
+      });
+    </script>
+
+  </head>
+
+  <body>
+    <!-- Static navbar -->
+    <nav class="navbar navbar-default">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="index.html">QAコネクト</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="create_user.html">会員登録</a></li>
+            <li><a href="osqq.html">質問一覧</a></li>
+            <li><a href="create_question.html">質問投稿</a></li>
+            <li class="active"><a href="qa.html">QA詳細</a></li>
+          </ul>
+          <ul class="nav navbar-nav navbar-right">
+            <li><p class="navbar-text" id="nav-host"></p></li>
+            <li><p class="navbar-text" id="nav-client-id"></p></li>
+            <li>
+              <a href="../oshietegoo_API.html" target="_blank">
+                <span class="glyphicon glyphicon-info-sign"></span>
+              </a>
+            </li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div><!--/.container-fluid -->
+    </nav>
+
+    <div class="container">
+      <div class="row" style="margin-top: 20px;">
+        <div class="col-xs-offset-3 col-xs-6">
+          <div class="panel panel-default">
+            <div class="panel-heading"><strong>検索条件</strong></div>
+            <div class="panel-body">
+              <form class="text-center" id="form-get-qa">
+                <label>質問ID</label>
+                <input type="text" name="question-id">
+                <button type="button" class="btn btn-default" id="btn-get-qa">検索</button>
+              </form>
+            </div>
+          </div>
+        </div>
+        <div class="col-xs-12">
+          <div class="panel panel-default" id="panel-qa-detail" style="display: none;">
+            <div class="panel-heading"><strong>QA詳細</strong></div>
+            <ul class="list-group">
+              <li class="list-group-item">
+                <h4>質問</h4>
+                <table class="table table-bordered table-condensed" id="table-qa-detail-question">
+                  <tbody>
+                  </tbody>
+                </table>
+              </li>
+              <li class="list-group-item">
+                <h4>補足一覧</h4>
+                <table class="table table-bordered table-condensed" id="table-qa-detail-additions">
+                  <thead>
+                    <tr>
+                      <th style="background-color: #eeeeee;">補足本文</th>
+                      <th style="background-color: #eeeeee;">投稿日時</th>
+                    </tr>
+                  <tbody>
+                  </tbody>
+                </table>
+              </li>
+              <li class="list-group-item">
+                <h4>回答一覧</h4>
+                <table class="table table-bordered table-condensed" id="table-qa-detail-answers">
+                  <thead>
+                    <tr>
+                      <th style="background-color: #eeeeee;">回答者ニックネーム</th>
+                      <th style="background-color: #eeeeee;">回答本文</th>
+                      <th style="background-color: #eeeeee;">お礼</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                  </tbody>
+                </table>
+              </li>
+            </ul>
+          </div><!-- /.panel panel-default -->
+        </div><!-- /.col-xs-12 -->
+      </div><!-- /.row -->
+    </div> <!-- /container -->
+  </body>
+</html>
